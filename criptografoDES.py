@@ -1,3 +1,9 @@
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+from time import time
+from random import randint
+
 # initial permutation Table for DES
 initialPermutation = [58, 50, 42, 34, 26, 18, 10, 2,
                     60, 52, 44, 36, 28, 20, 12, 4,
@@ -149,7 +155,7 @@ def getKeys(key):
     leftKey = key[0:28]
     rightKey = key[28:56]
 
-    for i in range(0, 16):
+    for i in range(0, 8):
         
         leftKey = shiftLeft(leftKey, shift[i])
         rightKey = shiftLeft(rightKey, shift[i])
@@ -170,7 +176,7 @@ def encrypt(block, roundKeys):
     leftBlock = bitBlock[0:32]
     rightBlock = bitBlock[32:64]
 
-    for i in range(0, 16):
+    for i in range(0, 8):
 
         rightExpanded = permute(rightBlock, expansionPermutation, 48)
 
@@ -188,7 +194,7 @@ def encrypt(block, roundKeys):
         result = xor(leftBlock, sBoxStr)
         leftBlock = result
 
-        if (i != 15):
+        if (i != 7):
             leftBlock, rightBlock = rightBlock, leftBlock
     
     combine = leftBlock + rightBlock
@@ -197,25 +203,60 @@ def encrypt(block, roundKeys):
     cipherText = bit2str(cipherText)
 
     return cipherText
+    
+def testOfDES():
+    key = "asdjgdjagd"
+    encryptTime = []
+    decryptTime = []
+    sizePlainText = []
+    sizeCipherText = []
+    text = ""
+    for i in range(10):
+
+        cipherText = ""
+        plainText = ""
+        text += chr(randint(0, 255))
+
+        sizePlainText.append(len(text))
+
+        start = time()
+        while len(text) % 8 != 0:
+            text += ' '
+        roundKeys = getKeys(key)
+
+        for j in range(int(len(text)/8)):
+            block = text[j*8:(j+1)*8]
+            cipherText += encrypt(block, roundKeys)
+
+        encryptTime.append(time()-start)
+        sizeCipherText.append(len(cipherText))
+
+        start = time()
+        roundKeys = getKeys(key)
+        roundKeysRev = roundKeys[::-1]
+        for j in range(int(len(text)/8)):
+            block = cipherText[j*8:(j+1)*8]
+            plainText += encrypt(block, roundKeysRev)
+        plainText = plainText.rstrip(" ")
+        decryptTime.append(time()-start)
+
+    return encryptTime, decryptTime, sizePlainText, sizeCipherText
 
 def main():
-    test = "hola ale"
-    key = "alsdh 34"
-    
-    while len(test) % 8 != 0:
-        test += ' '
 
-    roundKeys = getKeys(key)
-    
-    cipherText = encrypt(test, roundKeys)
-    print(cipherText)
+    encryptTime, decryptTime, sizePlainText, sizeCipherText = testOfDES()
+    plt.figure()
+    plt.plot(np.array(sizePlainText), np.array(encryptTime))
+    plt.xlabel('tamaño de la palabra')
+    plt.ylabel('tiempo (s)')
+    plt.title("tiempo de encriptación")
 
-    roundKeysRev = roundKeys[::-1]
-
-    plainText = (encrypt(cipherText, roundKeysRev))
-
-    print(plainText)
-    
+    plt.figure()
+    plt.plot(np.array(sizeCipherText), np.array(decryptTime))
+    plt.xlabel('tamaño de la palabra')
+    plt.ylabel('tiempo (s)')
+    plt.title("tiempo de desincriptación")
+    plt.show()
     return
 
 if __name__ == "__main__":
